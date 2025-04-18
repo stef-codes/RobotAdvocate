@@ -79,7 +79,7 @@ export async function generatePdf(document: Document) {
       
       // Split text into lines to handle word wrapping
       const textLines = pdf.splitTextToSize(obligation, 170);
-      textLines.forEach(line => {
+      textLines.forEach((line: any) => {
         pdf.text(`• ${line}`, 20, yPos);
         yPos += 6;
       });
@@ -137,7 +137,7 @@ export async function generatePdf(document: Document) {
       pdf.setFontSize(10);
       // Split description text into lines
       const descLines = pdf.splitTextToSize(term.description, 170);
-      descLines.forEach(line => {
+      descLines.forEach((line: string | string[]) => {
         pdf.text(line, 20, yPos);
         yPos += 5;
       });
@@ -173,7 +173,7 @@ export async function generatePdf(document: Document) {
       
       // Split description text into lines
       const descLines = pdf.splitTextToSize(risk.description, 170);
-      descLines.forEach(line => {
+      descLines.forEach((line: string | string[]) => {
         pdf.text(line, 20, yPos);
         yPos += 5;
       });
