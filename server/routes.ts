@@ -204,6 +204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 async function processDocument(documentId: number, filePath: string): Promise<void> {
   try {
     console.log(`Started processing document ${documentId} at ${filePath}`);
+    // Clear any previous processingError before starting
+    await storage.updateDocument(documentId, { processingError: undefined });
     
     // Get document from storage
     const document = await storage.getDocument(documentId);
@@ -235,7 +237,8 @@ async function processDocument(documentId: number, filePath: string): Promise<vo
     console.log('Updating document', documentId, 'with', { processedAt: new Date(), summary });
     const updated = await storage.updateDocument(documentId, {
       processedAt: new Date(),
-      summary
+      summary,
+      processingError: undefined // Clear any previous processing error
     });
     console.log('Updated document:', updated);
     console.log(`Updated document ${documentId} with summary and marked as processed`);
@@ -252,5 +255,9 @@ async function processDocument(documentId: number, filePath: string): Promise<vo
     console.log(`Completed processing document ${documentId}`);
   } catch (error) {
     console.error(`Error processing document ${documentId}:`, error);
+    // Update the document with a user-friendly processing error
+    await storage.updateDocument(documentId, {
+      processingError: "Sorry, we couldn't process your PDF. The file may be corrupted or in an unsupported format."
+    });
   }
 }

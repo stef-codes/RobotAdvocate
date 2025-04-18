@@ -20,6 +20,7 @@ export const documents = pgTable("documents", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
   processedAt: timestamp("processed_at"),
   summary: json("summary").$type<DocumentSummary>(),
+  processingError: text("processing_error"),
 });
 
 // Summary structure
@@ -64,6 +65,7 @@ export const updateDocumentSchema = z.object({
   originalText: z.string().optional(),
   processedAt: z.date().optional(),
   summary: z.any().optional(),
+  processingError: z.string().optional(),
 });
 
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
