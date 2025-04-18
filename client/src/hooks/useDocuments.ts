@@ -21,8 +21,11 @@ export function useDocumentDetails(id: number | null) {
     queryKey: [`/api/documents/${id}`],
     enabled: id !== null,
     refetchInterval: (data) => {
-      // If the document is still processing, poll every 2 seconds
-      return !data?.isProcessed ? 2000 : false;
+      return !data?.isProcessed ? 4000 : false;
     },
+    staleTime: 0, // Force data to be stale immediately
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    refetchOnMount: true, // Refetch on mount if needed
   });
 }
+
