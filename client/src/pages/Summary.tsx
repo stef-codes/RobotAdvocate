@@ -13,7 +13,7 @@ export default function Summary() {
   const { toast } = useToast();
   
   const { data: document, isLoading, isError } = useDocumentDetails(
-    match ? parseInt(params.id) : null
+    match ? parseInt(params?.id) : null
   );
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export default function Summary() {
     }
 
     // If the document is not processed yet, redirect to processing
-    if (document && !document.isProcessed) {
+    if (document && !document.isProcessed && params?.id) {
       setLocation(`/processing/${params.id}`);
     }
-  }, [match, document, params.id, setLocation]);
+  }, [match, document, params?.id, setLocation]);
 
   // Function to copy summary to clipboard
   const copyToClipboard = () => {
@@ -60,11 +60,19 @@ export default function Summary() {
         description: "Your PDF is being downloaded.",
       });
     } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to export as PDF: " + error.message,
-        variant: "destructive",
-      });
+      if (error instanceof Error) {
+        toast({
+          title: "Export Failed",
+          description: "Failed to export as PDF: " + error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Export Failed",
+          description: "Failed to export as PDF due to an unknown error.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

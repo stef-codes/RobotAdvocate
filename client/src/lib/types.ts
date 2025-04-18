@@ -10,6 +10,7 @@ export interface Document {
   processedAt: string | null;
   summary: DocumentSummary | null;
   isProcessed: boolean;
+  processingError?: string | null;
 }
 
 export interface UploadResponse {

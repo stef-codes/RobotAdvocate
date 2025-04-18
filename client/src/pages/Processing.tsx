@@ -4,6 +4,7 @@ import { useDocumentDetails } from "@/hooks/useDocuments";
 import { queryClient } from "@/lib/queryClient";
 
 export default function Processing() {
+  const [timedOut, setTimedOut] = useState(false);
   const [match, params] = useRoute("/processing/:id");
   const [, setLocation] = useLocation();
   const [progress, setProgress] = useState(0);
@@ -19,7 +20,8 @@ export default function Processing() {
       return;
     }
 
-    if (document?.isProcessed) {
+    // Only redirect if both processed and summary exists
+    if (document?.isProcessed && document?.summary) {
       setLocation(`/summary/${params.id}`);
       return;
     }
@@ -53,6 +55,49 @@ export default function Processing() {
 
     return () => clearInterval(checkStatus);
   }, [match, params?.id, document?.isProcessed]);
+
+  // Timeout for stuck processing (10 seconds)
+  useEffect(() => {
+    if (document?.isProcessed || document?.processingError) return;
+    const timeout = setTimeout(() => setTimedOut(true), 20000);
+    return () => clearTimeout(timeout);
+  }, [document?.isProcessed, document?.processingError]);
+
+  // Show backend processing error if present
+  if (document?.processingError) {
+    return (
+      <div className="max-w-2xl mx-auto text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-2">Processing Failed</h2>
+        <p className="text-gray-600 mb-4">
+          {document.processingError || "We couldn't extract text from your PDF. Please try another file."}
+        </p>
+        <button 
+          onClick={() => setLocation("/")}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700"
+        >
+          Return Home
+        </button>
+      </div>
+    );
+  }
+
+  // Show timeout error if stuck too long
+  if (timedOut) {
+    return (
+      <div className="max-w-2xl mx-auto text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-2">Processing Timed Out</h2>
+        <p className="text-gray-600 mb-4">
+          We couldn't process your document in time. It may be corrupted or unsupported.
+        </p>
+        <button 
+          onClick={() => setLocation("/")}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700"
+        >
+          Return Home
+        </button>
+      </div>
+    );
+  }
 
   // Loading state
   if (isLoading) {
