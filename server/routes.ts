@@ -203,6 +203,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Helper function to process document asynchronously
 async function processDocument(documentId: number, filePath: string): Promise<void> {
   try {
+    console.log(`Started processing document ${documentId} at ${filePath}`);
+    
     // Get document from storage
     const document = await storage.getDocument(documentId);
     
@@ -211,29 +213,41 @@ async function processDocument(documentId: number, filePath: string): Promise<vo
       return;
     }
     
+    console.log(`Processing document: ${document.fileName} (${document.fileType})`);
+    
     // Extract text from document
+    console.log(`Extracting text from ${filePath}`);
     const extractedText = await extractTextFromDocument(filePath, document.fileType);
+    console.log(`Extracted ${extractedText.length} characters of text`);
     
     // Update document with extracted text
     await storage.updateDocument(documentId, {
       originalText: extractedText
     });
+    console.log(`Updated document ${documentId} with extracted text`);
     
     // Generate summary using OpenAI
+    console.log(`Generating summary using OpenAI...`);
     const summary = await generateDocumentSummary(extractedText);
+    console.log(`Summary generated successfully:`, JSON.stringify(summary).substring(0, 200) + '...');
     
     // Update document with summary
     await storage.updateDocument(documentId, {
       processedAt: new Date(),
       summary
     });
+    console.log(`Updated document ${documentId} with summary and marked as processed`);
     
     // Delete temporary file
     fs.unlink(filePath, (err) => {
       if (err) {
         console.error(`Error deleting temporary file ${filePath}:`, err);
+      } else {
+        console.log(`Deleted temporary file ${filePath}`);
       }
     });
+    
+    console.log(`Completed processing document ${documentId}`);
   } catch (error) {
     console.error(`Error processing document ${documentId}:`, error);
   }

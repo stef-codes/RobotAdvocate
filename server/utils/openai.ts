@@ -13,10 +13,25 @@ const openai = new OpenAI({
  */
 export async function generateDocumentSummary(documentText: string): Promise<DocumentSummary> {
   try {
+    console.log("Starting OpenAI document summary generation");
+    
     // Check if API key is available
     if (!process.env.OPENAI_API_KEY) {
+      console.error("OpenAI API key is not configured");
       throw new Error("OpenAI API key is not configured");
     }
+    
+    console.log(`API Key available: ${process.env.OPENAI_API_KEY ? "Yes" : "No"}`);
+    console.log(`Document text length: ${documentText.length} characters`);
+    
+    // Trim document text if it's too long (tokens limit)
+    const maxTextLength = 15000; // Approximately 4000 tokens
+    const trimmedText = documentText.length > maxTextLength 
+      ? documentText.substring(0, maxTextLength) + "... [text truncated for API limits]" 
+      : documentText;
+    
+    console.log(`Using trimmed text length: ${trimmedText.length} characters`);
+    console.log(`First 100 chars of text: ${trimmedText.substring(0, 100)}...`);
 
     // Create a system prompt that explains how to analyze legal documents
     const systemPrompt = `
@@ -42,26 +57,41 @@ export async function generateDocumentSummary(documentText: string): Promise<Doc
       Keep the summary concise but comprehensive, highlighting only the most important elements.
     `;
 
+    console.log("Preparing to send request to OpenAI API");
+    
     // Send request to OpenAI API
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    console.log("Sending request to OpenAI with model: gpt-4o");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: documentText }
+        { role: "user", content: trimmedText }
       ],
       response_format: { type: "json_object" },
       temperature: 0.2, // Lower temperature for more focused, less creative response
       max_tokens: 2048 // Limit response length
     });
+    
+    console.log("Received response from OpenAI API");
+    console.log(`Response status: ${response.choices.length > 0 ? "Has choices" : "No choices"}`);
+    
+    if (response.choices.length === 0) {
+      throw new Error("OpenAI API returned empty response");
+    }
 
     // Parse and return the generated summary
     const summaryText = response.choices[0].message.content;
+    console.log(`Raw response text: ${summaryText.substring(0, 200)}...`);
+    
+    console.log("Parsing JSON response");
     const summary = JSON.parse(summaryText) as DocumentSummary;
+    console.log("Successfully parsed JSON response");
     
     return summary;
   } catch (error) {
     console.error("Error generating document summary:", error);
+    console.error("Error details:", JSON.stringify(error, null, 2));
     
     // Return a basic summary structure with error information
     return {
