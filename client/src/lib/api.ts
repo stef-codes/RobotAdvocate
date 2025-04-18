@@ -1,0 +1,196 @@
+import { apiRequest } from "./queryClient";
+import { Document } from "./types";
+import { jsPDF } from "jspdf";
+import 'jspdf-autotable';
+
+/**
+ * Upload a document to the server
+ * @param formData Form data containing the file to upload
+ * @returns Object with document ID and metadata
+ */
+export async function uploadDocument(formData: FormData) {
+  const response = await fetch('/api/documents/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to upload document');
+  }
+  
+  return await response.json();
+}
+
+/**
+ * Generate and download a PDF from the document summary
+ * @param document Document with summary data
+ */
+export async function generatePdf(document: Document) {
+  if (!document.summary) {
+    throw new Error('No summary available');
+  }
+
+  // Create new PDF document
+  const pdf = new jsPDF();
+  
+  // Set properties
+  pdf.setProperties({
+    title: `${document.fileName} - Summary`,
+    subject: 'Legal Document Summary',
+    author: 'RobotLawyer',
+    creator: 'RobotLawyer AI'
+  });
+  
+  // Add title
+  pdf.setFontSize(20);
+  pdf.text(`Summary: ${document.fileName}`, 14, 22);
+  
+  // Add processed date
+  pdf.setFontSize(10);
+  pdf.text(`Processed on: ${new Date(document.processedAt || document.uploadedAt).toLocaleDateString()}`, 14, 30);
+  
+  let yPos = 40;
+  
+  // Add parties
+  if (document.summary.parties && document.summary.parties.length > 0) {
+    pdf.setFontSize(14);
+    pdf.text('Key Parties', 14, yPos);
+    yPos += 8;
+    
+    document.summary.parties.forEach(party => {
+      pdf.setFontSize(10);
+      pdf.text(`• ${party.role}: ${party.name}`, 20, yPos);
+      yPos += 6;
+    });
+    
+    yPos += 5;
+  }
+  
+  // Add obligations
+  if (document.summary.obligations && document.summary.obligations.length > 0) {
+    pdf.setFontSize(14);
+    pdf.text('Main Obligations', 14, yPos);
+    yPos += 8;
+    
+    document.summary.obligations.forEach(obligation => {
+      pdf.setFontSize(10);
+      
+      // Split text into lines to handle word wrapping
+      const textLines = pdf.splitTextToSize(obligation, 170);
+      textLines.forEach(line => {
+        pdf.text(`• ${line}`, 20, yPos);
+        yPos += 6;
+      });
+    });
+    
+    yPos += 5;
+  }
+  
+  // Add dates if we have room on the page
+  if (document.summary.dates && document.summary.dates.length > 0) {
+    // Check if we need a new page
+    if (yPos > 240) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.text('Important Dates', 14, yPos);
+    yPos += 8;
+    
+    // Create table for dates
+    const dateData = document.summary.dates.map(date => [date.event, date.date]);
+    
+    // @ts-ignore - jspdf-autotable types are not included
+    pdf.autoTable({
+      startY: yPos,
+      head: [['Event', 'Date']],
+      body: dateData,
+      margin: { left: 14 },
+      theme: 'grid',
+      styles: { fontSize: 10 }
+    });
+    
+    // @ts-ignore - jspdf-autotable types are not included
+    yPos = pdf.lastAutoTable.finalY + 10;
+  }
+  
+  // Add terms
+  if (document.summary.terms && document.summary.terms.length > 0) {
+    // Check if we need a new page
+    if (yPos > 220) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.text('Key Terms', 14, yPos);
+    yPos += 8;
+    
+    document.summary.terms.forEach(term => {
+      pdf.setFontSize(12);
+      pdf.text(term.title, 20, yPos);
+      yPos += 6;
+      
+      pdf.setFontSize(10);
+      // Split description text into lines
+      const descLines = pdf.splitTextToSize(term.description, 170);
+      descLines.forEach(line => {
+        pdf.text(line, 20, yPos);
+        yPos += 5;
+      });
+      
+      yPos += 5;
+    });
+  }
+  
+  // Add risks
+  if (document.summary.risks && document.summary.risks.length > 0) {
+    // Check if we need a new page
+    if (yPos > 220) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.text('Potential Risks', 14, yPos);
+    yPos += 8;
+    
+    document.summary.risks.forEach(risk => {
+      // Set color based on severity
+      const color = risk.severity === 'high' ? '#f44336' : 
+                    risk.severity === 'medium' ? '#ff9800' : '#4caf50';
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(color);
+      pdf.text(risk.title, 20, yPos);
+      yPos += 6;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0); // Reset to black
+      
+      // Split description text into lines
+      const descLines = pdf.splitTextToSize(risk.description, 170);
+      descLines.forEach(line => {
+        pdf.text(line, 20, yPos);
+        yPos += 5;
+      });
+      
+      yPos += 5;
+    });
+  }
+  
+  // Add footer
+  const pageCount = pdf.getNumberOfPages();
+  for(let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.setTextColor(150);
+    pdf.text(`Generated by RobotLawyer - Page ${i} of ${pageCount}`, pdf.internal.pageSize.getWidth() / 2, 287, { align: 'center' });
+  }
+  
+  // Save the PDF
+  pdf.save(`${document.fileName.split('.')[0]}-Summary.pdf`);
+}
