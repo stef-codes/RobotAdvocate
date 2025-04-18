@@ -9,12 +9,12 @@ export default function Processing() {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Extracting document text");
 
-  const documentId = match ? parseInt(params.id) : null;
+  const documentId = match && params ? parseInt(params.id) : null;
   const { data: document, isLoading, isError } = useDocumentDetails(documentId);
 
   // Handle redirection and simulated progress
   useEffect(() => {
-    if (!match) {
+    if (!match || !params) {
       setLocation("/");
       return;
     }
@@ -39,11 +39,11 @@ export default function Processing() {
     }, 800);
 
     return () => clearInterval(interval);
-  }, [match, document?.isProcessed, params.id, setLocation]);
+  }, [match, params?.id, document?.isProcessed, setLocation]);
 
   // Polling for document status
   useEffect(() => {
-    if (!match || document?.isProcessed) return;
+    if (!match || !params || document?.isProcessed) return;
 
     const checkStatus = setInterval(() => {
       queryClient.invalidateQueries({
@@ -52,7 +52,7 @@ export default function Processing() {
     }, 2000);
 
     return () => clearInterval(checkStatus);
-  }, [match, params.id, document?.isProcessed]);
+  }, [match, params?.id, document?.isProcessed]);
 
   // Loading state
   if (isLoading) {
