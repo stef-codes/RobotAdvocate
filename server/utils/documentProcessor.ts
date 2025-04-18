@@ -20,7 +20,7 @@ export async function extractTextFromDocument(filePath: string, fileType: string
     }
   } catch (error) {
     console.error('Error extracting text from document:', error);
-    throw new Error(`Failed to extract text from document: ${error.message}`);
+    throw new Error(`Failed to extract text from document: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -37,7 +37,7 @@ async function extractTextFromPdf(filePath: string): Promise<string> {
     return data.text;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    throw new Error(`Failed to extract text from PDF: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -52,6 +52,6 @@ async function extractTextFromDocx(filePath: string): Promise<string> {
     return result.value;
   } catch (error) {
     console.error('Error extracting text from DOCX:', error);
-    throw new Error(`Failed to extract text from DOCX: ${error.message}`);
+    throw new Error(`Failed to extract text from DOCX: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

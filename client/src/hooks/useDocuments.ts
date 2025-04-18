@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, Query, QueryKey } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Document } from "@/lib/types";
 
@@ -20,12 +20,12 @@ export function useDocumentDetails(id: number | null) {
   return useQuery<Document>({
     queryKey: [`/api/documents/${id}`],
     enabled: id !== null,
-    refetchInterval: (data) => {
-      return !data?.isProcessed ? 4000 : false;
-    },
+    refetchInterval: (query: Query<Document, Error, Document, QueryKey>) => {
+  const data = query.state.data;
+  return data && !data.isProcessed ? 4000 : false;
+},
     staleTime: 0, // Force data to be stale immediately
     refetchOnWindowFocus: false, // Disable refetch on window focus
     refetchOnMount: true, // Refetch on mount if needed
   });
 }
-
