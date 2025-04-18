@@ -232,10 +232,12 @@ async function processDocument(documentId: number, filePath: string): Promise<vo
     console.log(`Summary generated successfully:`, JSON.stringify(summary).substring(0, 200) + '...');
     
     // Update document with summary
-    await storage.updateDocument(documentId, {
+    console.log('Updating document', documentId, 'with', { processedAt: new Date(), summary });
+    const updated = await storage.updateDocument(documentId, {
       processedAt: new Date(),
       summary
     });
+    console.log('Updated document:', updated);
     console.log(`Updated document ${documentId} with summary and marked as processed`);
     
     // Delete temporary file
